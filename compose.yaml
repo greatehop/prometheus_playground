@@ -1,0 +1,58 @@
+version: "3.7"
+
+services:
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    ports:
+      - 9090:9090
+    networks:
+      - backnet
+      - frontnet
+    restart: unless-stopped
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prom_data:/prometheus
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - 3000:3000
+    networks:
+      - frontnet
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=grafana
+      - GF_FEATURE_TOGGLES_ENABLE=publicDashboards
+    volumes:
+      - ./grafana:/etc/grafana/provisioning/datasources
+      - ./grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/main.yaml
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+  node-exporter:
+    image: prom/node-exporter
+    container_name: node-exporter
+    networks:
+      - backnet
+    ports:
+      - 9100:9100
+    restart: unless-stopped
+  alert-manager:
+    image: prom/alertmanager
+    container_name: alert-manager
+#    volumes:
+#      - "./alertmanager.yml:/alertmanager/alertmanager.yml"
+    networks:
+      - frontnet
+    ports:
+      - 9093:9093
+
+volumes:
+  prom_data:
+    external: true
+
+networks:
+  backnet:
+  frontnet:
